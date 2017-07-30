@@ -6,6 +6,7 @@ import ir.ac.iust.dml.kg.raw.triple.RawTriple;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExporter;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +40,16 @@ public class TripleExtractor {
                 return name.endsWith(".txt"); // or something else
             }
         }));
+        String outPutFolderPath = folderPath + "\\output\\";
+        File outputFolder = new File(outPutFolderPath);
+        FileUtils.cleanDirectory(outputFolder);
+        FileUtils.forceDelete(outputFolder);
+        FileUtils.forceMkdir(outputFolder);
+
         List<RawTripleExtractor> rawTripleExtractors = new ArrayList<RawTripleExtractor>();
         rawTripleExtractors.add(extractor);
 
-        int index = 0;
         for (File file : fileList) {
-            index++;
             List<RawTriple> allFileTriples = new ArrayList<RawTriple>();
             for (RawTripleExtractor rawTripleExtractor : rawTripleExtractors) {
                 if (file.isFile()) {
@@ -68,12 +73,11 @@ public class TripleExtractor {
                 }
 
             }
-            String outPutFolderPath = folderPath + "\\output\\";
-            File outputFolder = new File(outPutFolderPath);
-            Path filePath = Paths.get(outPutFolderPath, index + ".json");
-            if (!outputFolder.exists()) {
-                outputFolder.mkdir();
-            }
+
+
+            Path filePath = Paths.get(outPutFolderPath, FilenameUtils.getBaseName(file.getName()) + ".json");
+
+
             RawTripleExporter rawTripleExporter = new RawTripleExporter(filePath);
             if (allFileTriples.size() > 0)
                 rawTripleExporter.writeTripleList(allFileTriples);
