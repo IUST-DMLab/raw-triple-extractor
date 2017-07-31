@@ -42,8 +42,11 @@ public class TripleExtractor {
         }));
         String outPutFolderPath = folderPath + "\\output\\";
         File outputFolder = new File(outPutFolderPath);
-        FileUtils.cleanDirectory(outputFolder);
-        FileUtils.forceDelete(outputFolder);
+
+        if (outputFolder.exists()) {
+            FileUtils.cleanDirectory(outputFolder);
+            FileUtils.forceDelete(outputFolder);
+        }
         FileUtils.forceMkdir(outputFolder);
 
         List<RawTripleExtractor> rawTripleExtractors = new ArrayList<RawTripleExtractor>();
