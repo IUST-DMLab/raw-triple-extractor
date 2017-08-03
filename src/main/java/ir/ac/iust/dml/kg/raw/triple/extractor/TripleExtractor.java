@@ -66,7 +66,7 @@ public class TripleExtractor {
                   final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
                   numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
                   logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
-                      rawTripleExtractor.getClass().getSimpleName(), triples.size(), 0, sentence));
+                      rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));
                 }
                 allFileTriples.addAll(triples);
               } catch (Exception e) {
