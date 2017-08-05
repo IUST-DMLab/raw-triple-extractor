@@ -1,6 +1,7 @@
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
+import ir.ac.iust.dml.kg.raw.coreference.ReferenceFinder;
 import ir.ac.iust.dml.kg.raw.triple.RawTriple;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExporter;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
@@ -51,9 +52,13 @@ public class TripleExtractor {
       List<RawTriple> allFileTriples = new ArrayList<RawTriple>();
 
       if (file.isFile()) {
-        List<String> lines = FileUtils.readLines(file, "UTF-8");
-        for (String line : lines) {
-          List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(line);
+        // List<String> lines = FileUtils.readLines(file, "UTF-8");
+        String fileRawText = FileUtils.readFileToString(file, "UTF-8");
+        ReferenceFinder rfinder = new ReferenceFinder();
+        String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
+
+        // for (String line : lines) {
+        List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(outputText);
           for (String sentence : sentences) {
             numberOfSentences++;
             if (numberOfSentences % 100 == 0)
@@ -74,7 +79,7 @@ public class TripleExtractor {
               }
             }
           }
-        }
+        //}
       }
 
 
