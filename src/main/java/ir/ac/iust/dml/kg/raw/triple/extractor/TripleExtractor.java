@@ -59,26 +59,26 @@ public class TripleExtractor {
 
         // for (String line : lines) {
         List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(outputText);
-          for (String sentence : sentences) {
-            numberOfSentences++;
-            if (numberOfSentences % 100 == 0)
-              logger.warn(String.format("%6d sentences has been processed.", numberOfSentences));
-            for (RawTripleExtractor rawTripleExtractor : extractors) {
-              try {
-                List<RawTriple> triples = rawTripleExtractor.extract(null, null, sentence);
-                if (!triples.isEmpty()) {
-                  final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
-                  final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
-                  numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
-                  logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
-                      rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));
-                }
-                allFileTriples.addAll(triples);
-              } catch (Exception e) {
-                logger.error(e);
+        for (String sentence : sentences) {
+          numberOfSentences++;
+          if (numberOfSentences % 100 == 0)
+            logger.warn(String.format("%6d sentences has been processed.", numberOfSentences));
+          for (RawTripleExtractor rawTripleExtractor : extractors) {
+            try {
+              List<RawTriple> triples = rawTripleExtractor.predict(null, null, sentence);
+              if (!triples.isEmpty()) {
+                final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
+                final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
+                numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
+                logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
+                    rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));
               }
+              allFileTriples.addAll(triples);
+            } catch (Exception e) {
+              logger.error(e);
             }
           }
+        }
         //}
       }
 
@@ -88,7 +88,8 @@ public class TripleExtractor {
 
       RawTripleExporter rawTripleExporter = new RawTripleExporter(filePath);
       if (allFileTriples.size() > 0)
-        rawTripleExporter.writeTripleList(allFileTriples);
+        for (RawTriple a : allFileTriples)
+          rawTripleExporter.write(a);
     }
 
 
