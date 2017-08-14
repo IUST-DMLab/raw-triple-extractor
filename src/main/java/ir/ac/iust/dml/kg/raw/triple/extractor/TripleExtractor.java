@@ -28,6 +28,7 @@ public class TripleExtractor {
   private final Log logger = LogFactory.getLog(getClass());
   @Autowired
   private List<RawTripleExtractor> extractors;
+  ReferenceFinder rfinder = new ReferenceFinder();
 
   public void writeTriplesToFiles(String folderPath) throws IOException {
     File folder = new File(folderPath);
@@ -54,8 +55,7 @@ public class TripleExtractor {
       if (file.isFile()) {
         // List<String> lines = FileUtils.readLines(file, "UTF-8");
         String fileRawText = FileUtils.readFileToString(file, "UTF-8");
-        ReferenceFinder rfinder = new ReferenceFinder();
-        String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
+        String outputText = fileRawText; //rfinder.getAnnotationTextAfterCoref(fileRawText);
 
         // for (String line : lines) {
         List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(outputText);
