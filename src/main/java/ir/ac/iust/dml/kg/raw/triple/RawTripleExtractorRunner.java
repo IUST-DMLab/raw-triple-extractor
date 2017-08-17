@@ -19,6 +19,6 @@ public class RawTripleExtractorRunner implements CommandLineRunner {
         logger.info("ApplicationStartupRunner run method Started !!");
         String folderPath = args[0];
         tripleExtractor.writeTriplesToFiles(folderPath);
-        //2 dependecny extrat triple and parse tree extractor and next add third deendecy
+
     }
 }
