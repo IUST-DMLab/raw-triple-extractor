@@ -31,6 +31,7 @@ public class TripleExtractor {
   ReferenceFinder rfinder = new ReferenceFinder();
 
   public void writeTriplesToFiles(String folderPath) throws IOException {
+    extractors.remove(1);
     File folder = new File(folderPath);
     List<File> fileList = Arrays.asList(folder.listFiles(new FilenameFilter() {
       @Override
