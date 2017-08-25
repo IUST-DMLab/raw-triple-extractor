@@ -31,12 +31,12 @@ public class TripleExtractor {
   ReferenceFinder rfinder = new ReferenceFinder();
 
   public void writeTriplesToFiles(String folderPath) throws IOException {
-    extractors.remove(1);
+      extractors.remove(1);
     File folder = new File(folderPath);
     List<File> fileList = Arrays.asList(folder.listFiles(new FilenameFilter() {
       @Override
       public boolean accept(File dir, String name) {
-        return name.endsWith(".txt"); // or something else
+          return name.endsWith(".csv"); // or something else
       }
     }));
     String outPutFolderPath = folderPath + "\\output\\";
@@ -56,10 +56,10 @@ public class TripleExtractor {
       if (file.isFile()) {
         // List<String> lines = FileUtils.readLines(file, "UTF-8");
         String fileRawText = FileUtils.readFileToString(file, "UTF-8");
-        String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
+          //String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
 
         // for (String line : lines) {
-        List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(outputText);
+          List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(fileRawText);
         for (String sentence : sentences) {
           numberOfSentences++;
           if (numberOfSentences % 100 == 0)
@@ -81,15 +81,18 @@ public class TripleExtractor {
           }
         }
         //}
+          Path filePath = Paths.get(outPutFolderPath, FilenameUtils.getBaseName(file.getName()) + ".json");
+
+
+          if (allFileTriples.size() > 0) {
+              RawTripleExporter rawTripleExporter = new RawTripleExporter(filePath);
+              rawTripleExporter.writeTripleList(allFileTriples);
+          }
+
       }
 
 
-      Path filePath = Paths.get(outPutFolderPath, FilenameUtils.getBaseName(file.getName()) + ".json");
 
-
-      RawTripleExporter rawTripleExporter = new RawTripleExporter(filePath);
-      if (allFileTriples.size() > 0)
-        rawTripleExporter.writeTripleList(allFileTriples);
     }
 
 
