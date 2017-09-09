@@ -2,6 +2,8 @@ package ir.ac.iust.dml.kg.raw.triple.extractor;
 
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
 import ir.ac.iust.dml.kg.raw.coreference.ReferenceFinder;
+import ir.ac.iust.dml.kg.raw.extractor.EnhancedEntityExtractor;
+import ir.ac.iust.dml.kg.raw.extractor.ResolvedEntityToken;
 import ir.ac.iust.dml.kg.raw.triple.RawTriple;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExporter;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
@@ -60,26 +62,28 @@ public class TripleExtractor {
 
         // for (String line : lines) {
           List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(fileRawText);
-        for (String sentence : sentences) {
+        //  for (String sentence : sentences) {
           numberOfSentences++;
           if (numberOfSentences % 100 == 0)
             logger.warn(String.format("%6d sentences has been processed.", numberOfSentences));
           for (RawTripleExtractor rawTripleExtractor : extractors) {
             try {
-              List<RawTriple> triples = rawTripleExtractor.extract(null, null, sentence);
+              //   List<RawTriple> triples = rawTripleExtractor.extract(null, null, sentence);
+              List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file.toPath());
+              List<RawTriple> triples = rawTripleExtractor.extract(null, null, tokens);
               if (!triples.isEmpty()) {
                 final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
                 final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
                 numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
-                logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
-                        rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));
+                /*logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
+                        rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));*/
               }
               allFileTriples.addAll(triples);
             } catch (Exception e) {
               logger.error(e);
             }
           }
-        }
+        // }
         //}
           Path filePath = Paths.get(outPutFolderPath, FilenameUtils.getBaseName(file.getName()) + ".json");
 
