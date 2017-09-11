@@ -67,8 +67,10 @@ public class TripleExtractor {
         input = tokens;
       }
 
-      if (numberOfSentences % 100 == 0)
+      if (numberOfSentences % 100 == 0) {
         LOGGER.warn(String.format("%6d sentences has been processed.", numberOfSentences));
+        showStats(numberOfSentences, numberOfExtractedTriples);
+      }
 
       for (RawTripleExtractor rawTripleExtractor : extractors) {
         try {
@@ -85,12 +87,20 @@ public class TripleExtractor {
           }
           allFileTriples.addAll(triples);
         } catch (Exception e) {
-//          LOGGER.error("error in extracting triples from " + file.toAbsolutePath(), e);
+          LOGGER.trace("error in extracting triples from " + file.toAbsolutePath(), e);
         }
       }
       if (!allFileTriples.isEmpty())
         ExtractorUtils.writeTriples(outputFolder.resolve(file.getFileName() + ".json"), allFileTriples);
     }
     ExtractorUtils.markExtraction(outputFolder, extractionStart);
+
+    showStats(numberOfSentences, numberOfExtractedTriples);
+  }
+
+  private void showStats(int numberOfSentences, Map<Class, Integer> numberOfExtractedTriples) {
+    LOGGER.warn("Number of all sentences: " + numberOfSentences);
+    numberOfExtractedTriples.forEach((key, value) ->
+        LOGGER.warn(String.format("Number of extracted triples from %s is %d.", key.getSimpleName(), value)));
   }
 }
