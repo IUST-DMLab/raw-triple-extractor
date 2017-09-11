@@ -1,27 +1,25 @@
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
-import ir.ac.iust.dml.kg.raw.coreference.ReferenceFinder;
 import ir.ac.iust.dml.kg.raw.extractor.EnhancedEntityExtractor;
 import ir.ac.iust.dml.kg.raw.extractor.ResolvedEntityToken;
 import ir.ac.iust.dml.kg.raw.triple.RawTriple;
-import ir.ac.iust.dml.kg.raw.triple.RawTripleExporter;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
+import ir.ac.iust.dml.kg.raw.utils.PathWalker;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by mohammad on 7/25/2017.
@@ -29,85 +27,80 @@ import java.util.*;
 @Service
 public class TripleExtractor {
 
-    private final Log logger = LogFactory.getLog(getClass());
-    @Autowired
-    private List<RawTripleExtractor> extractors;
-    ReferenceFinder rfinder = new ReferenceFinder();
+  private static final Logger LOGGER = LoggerFactory.getLogger(SentenceTokenizer.class);
+  private final List<RawTripleExtractor> extractors;
 
-    public void writeTriplesToFiles(String folderPath) throws IOException {
-        extractors.remove(1);
-        File folder = new File(folderPath);
-        List<File> fileList = Arrays.asList(folder.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".txt"); // or something else
-            }
-        }));
-        String outPutFolderPath = folderPath + "\\output\\";
-        File outputFolder = new File(outPutFolderPath);
+  @Autowired
+  public TripleExtractor(List<RawTripleExtractor> extractors) {
+    this.extractors = extractors;
+  }
 
-        if (outputFolder.exists()) {
-            FileUtils.cleanDirectory(outputFolder);
-            FileUtils.forceDelete(outputFolder);
+  @SuppressWarnings("unused")
+  public enum InputType {
+    Raw, Repository
+  }
+
+  public void writeTriplesToFiles(String folderPath, InputType inputType) throws IOException {
+//    extractors.remove(1);
+    final Path baseFolder = Paths.get(folderPath);
+    final List<Path> fileList = PathWalker.INSTANCE.getPath(baseFolder,
+        inputType == InputType.Raw ? null : ".*\\.json");
+    final Path outputFolder = baseFolder.resolve("output");
+    if (!Files.exists(outputFolder)) Files.createDirectories(outputFolder);
+
+    int numberOfSentences = 0;
+    final Map<Class, Integer> numberOfExtractedTriples = new HashMap<>();
+    final Long extractionStart = System.currentTimeMillis();
+    for (Path file : fileList) {
+      List<RawTriple> allFileTriples = new ArrayList<>();
+      Object input;
+      if (inputType == InputType.Raw) {
+        final String texts = FileUtils.readFileToString(file.toFile(), "UTF-8");
+        //String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
+        final List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(texts);
+        numberOfSentences += sentences.size();
+        input = texts;
+      } else {
+        final List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file);
+        assert tokens != null;
+        numberOfSentences += tokens.size();
+        input = tokens;
+      }
+
+      if (numberOfSentences % 100 == 0) {
+        LOGGER.warn(String.format("%6d sentences has been processed.", numberOfSentences));
+        showStats(numberOfSentences, numberOfExtractedTriples);
+      }
+
+      for (RawTripleExtractor rawTripleExtractor : extractors) {
+        try {
+          final List<RawTriple> triples;
+          if (input instanceof String)
+            triples = rawTripleExtractor.extract(null, null, (String) input);
+          else
+            //noinspection unchecked
+            triples = rawTripleExtractor.extract(null, null, (List<List<ResolvedEntityToken>>) input);
+          if (!triples.isEmpty()) {
+            final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
+            final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
+            numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
+          }
+          allFileTriples.addAll(triples);
+        } catch (Exception e) {
+          LOGGER.trace("error in extracting triples from " + file.toAbsolutePath(), e);
         }
-        FileUtils.forceMkdir(outputFolder);
-
-        int numberOfSentences = 0;
-        final Map<Class, Integer> numberOfExtractedTriples = new HashMap<>();
-        Long extractionStart = System.currentTimeMillis();
-        for (File file : fileList) {
-            List<RawTriple> allFileTriples = new ArrayList<RawTriple>();
-
-            if (file.isFile()) {
-                // List<String> lines = FileUtils.readLines(file, "UTF-8");
-                String fileRawText = FileUtils.readFileToString(file, "UTF-8");
-                //String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
-
-                // for (String line : lines) {
-                List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(fileRawText);
-                //  for (String sentence : sentences) {
-                numberOfSentences++;
-                if (numberOfSentences % 100 == 0)
-                    logger.warn(String.format("%6d sentences has been processed.", numberOfSentences));
-
-                for (RawTripleExtractor rawTripleExtractor : extractors) {
-                    try {
-                        //   List<RawTriple> triples = rawTripleExtractor.extract(null, null, sentence);
-                        List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file.toPath());
-                        List<RawTriple> triples = rawTripleExtractor.extract(null, null, tokens);
-                        if (!triples.isEmpty()) {
-                            final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
-                            final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
-                            numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
-                /*logger.warn(String.format("%28s has extracted %4d (total %4d) triples from %s",
-                        rawTripleExtractor.getClass().getSimpleName(), triples.size(), newValue, sentence));*/
-                        }
-                        allFileTriples.addAll(triples);
-                    } catch (Exception e) {
-                        logger.error(e);
-                    }
-                }
-                // }
-                //}
-                Path filePath = Paths.get(outPutFolderPath, FilenameUtils.getBaseName(file.getName()) + ".json");
-
-
-                if (allFileTriples.size() > 0) {
-                    RawTripleExporter rawTripleExporter = new RawTripleExporter(filePath);
-                    rawTripleExporter.writeTripleList(allFileTriples);
-                }
-
-            }
-        }
-        Long extractionEnd = System.currentTimeMillis();
-        Path filePath = Paths.get(outPutFolderPath, "epoch.json");
-        Info info = new Info();
-        info.setExtractionStart(extractionStart.toString());
-        info.setExtractionEnd(extractionEnd.toString());
-        info.setModule("raw_dependency_pattern");
-
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        FileUtils.write(filePath.toFile(), gson.toJson(info), "UTF-8", false);
-
+      }
+      if (!allFileTriples.isEmpty())
+        ExtractorUtils.writeTriples(outputFolder.resolve(file.getFileName() + ".json"), allFileTriples);
     }
+    ExtractorUtils.markExtraction(outputFolder, extractionStart);
+
+    showStats(numberOfSentences, numberOfExtractedTriples);
+  }
+
+  private void showStats(int numberOfSentences, Map<Class, Integer> numberOfExtractedTriples) {
+    LOGGER.warn("Number of all sentences: " + numberOfSentences);
+    numberOfExtractedTriples.forEach((key, value) ->
+        LOGGER.warn(String.format("Number of extracted triples from %s is %d.", key.getSimpleName(), value)));
+  }
 }
