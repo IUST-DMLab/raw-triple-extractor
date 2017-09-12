@@ -51,30 +51,32 @@ public class TripleExtractor {
     int numberOfSentences = 0;
     final Map<Class, Integer> numberOfExtractedTriples = new HashMap<>();
     final Long extractionStart = System.currentTimeMillis();
+    int lastLogNumberOfSentences = 0;
     for (Path file : fileList) {
       List<RawTriple> allFileTriples = new ArrayList<>();
       Object input;
-      if (inputType == InputType.Raw) {
-        final String texts = FileUtils.readFileToString(file.toFile(), "UTF-8");
-        //String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
-        final List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(texts);
-        numberOfSentences += sentences.size();
-        input = texts;
-      } else {
-        try {
+      try {
+        if (inputType == InputType.Raw) {
+          final String texts = FileUtils.readFileToString(file.toFile(), "UTF-8");
+          //String outputText = rfinder.getAnnotationTextAfterCoref(fileRawText);
+          final List<String> sentences = SentenceTokenizer.SentenceSplitterRaw(texts);
+          numberOfSentences += sentences.size();
+          input = texts;
+        } else {
+
           final List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file);
           assert tokens != null;
           numberOfSentences += tokens.size();
           input = tokens;
-        } catch (Throwable th) {
-          LOGGER.trace("error in repository input file ", th);
-          continue;
         }
+      } catch (Throwable th) {
+        LOGGER.error("error in file reading " + file.toAbsolutePath());
+        continue;
       }
 
-      if (numberOfSentences % 100 == 0) {
-        LOGGER.warn(String.format("%6d sentences has been processed.", numberOfSentences));
-        showStats(numberOfSentences, numberOfExtractedTriples);
+      if (numberOfSentences - lastLogNumberOfSentences > 100) {
+        showStats(numberOfSentences, numberOfExtractedTriples, extractionStart);
+        lastLogNumberOfSentences = numberOfSentences;
       }
 
       for (RawTripleExtractor rawTripleExtractor : extractors) {
@@ -99,12 +101,13 @@ public class TripleExtractor {
         ExtractorUtils.writeTriples(outputFolder.resolve(file.getFileName() + ".json"), allFileTriples);
     }
     ExtractorUtils.markExtraction(outputFolder, extractionStart);
-
-    showStats(numberOfSentences, numberOfExtractedTriples);
+    showStats(numberOfSentences, numberOfExtractedTriples, extractionStart);
+    System.exit(0);
   }
 
-  private void showStats(int numberOfSentences, Map<Class, Integer> numberOfExtractedTriples) {
-    LOGGER.warn("Number of all sentences: " + numberOfSentences);
+  private void showStats(int numberOfSentences, Map<Class, Integer> numberOfExtractedTriples, long startTime) {
+    LOGGER.warn(String.format("%6d sentences has been processed in %d mili-seconds",
+        numberOfSentences, (System.currentTimeMillis() - startTime)));
     numberOfExtractedTriples.forEach((key, value) ->
         LOGGER.warn(String.format("Number of extracted triples from %s is %d.", key.getSimpleName(), value)));
   }
