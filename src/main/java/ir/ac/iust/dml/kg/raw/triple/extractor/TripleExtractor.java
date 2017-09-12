@@ -84,8 +84,8 @@ public class TripleExtractor {
             final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
             final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
             numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
+            allFileTriples.addAll(triples);
           }
-          allFileTriples.addAll(triples);
         } catch (Exception e) {
           LOGGER.trace("error in extracting triples from " + file.toAbsolutePath(), e);
         }
