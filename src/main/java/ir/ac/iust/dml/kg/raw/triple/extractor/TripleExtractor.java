@@ -61,10 +61,15 @@ public class TripleExtractor {
         numberOfSentences += sentences.size();
         input = texts;
       } else {
-        final List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file);
-        assert tokens != null;
-        numberOfSentences += tokens.size();
-        input = tokens;
+        try {
+          final List<List<ResolvedEntityToken>> tokens = EnhancedEntityExtractor.importFromFile(file);
+          assert tokens != null;
+          numberOfSentences += tokens.size();
+          input = tokens;
+        } catch (Throwable th) {
+          LOGGER.trace("error in repository input file ", th);
+          continue;
+        }
       }
 
       if (numberOfSentences % 100 == 0) {
