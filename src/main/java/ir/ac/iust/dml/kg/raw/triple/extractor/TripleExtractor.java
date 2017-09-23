@@ -1,3 +1,9 @@
+/*
+ * Farsi Knowledge Graph Project
+ *  Iran University of Science and Technology (Year 2017)
+ *  Developed by Mohammad Abdous.
+ */
+
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
@@ -21,9 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by mohammad on 7/25/2017.
- */
 @Service
 public class TripleExtractor {
 

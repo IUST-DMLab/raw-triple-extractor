@@ -1,8 +1,11 @@
+/*
+ * Farsi Knowledge Graph Project
+ *  Iran University of Science and Technology (Year 2017)
+ *  Developed by Mohammad Abdous.
+ */
+
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
-/**
- * Created by mohammad on 9/10/2017.
- */
 public class Info {
 
     private String extractionStart;
