@@ -38,6 +38,6 @@ public class RawTripleExtractorRunner implements CommandLineRunner {
     TripleExtractor.InputType type = args.length > 1
         ? TripleExtractor.InputType.valueOf(args[1])
         : TripleExtractor.InputType.Raw;
-    tripleExtractor.writeTriplesToFiles(folderPath, type);
+    tripleExtractor.writeTriplesToFiles(folderPath, type, args.length > 2 ? args[2] : null);
   }
 }

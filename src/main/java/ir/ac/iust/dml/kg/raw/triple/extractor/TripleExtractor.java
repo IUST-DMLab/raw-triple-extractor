@@ -43,8 +43,16 @@ public class TripleExtractor {
     Raw, Repository
   }
 
-  public void writeTriplesToFiles(String folderPath, InputType inputType) throws IOException {
-//    extractors.remove(1);
+  public void writeTriplesToFiles(String folderPath, InputType inputType, String className) throws IOException {
+    if (className != null) {
+      List<RawTripleExtractor> toRemove = new ArrayList<>();
+      for (RawTripleExtractor extractor : extractors) {
+        if (!extractor.getClass().getSimpleName().toLowerCase().equals(className.toLowerCase()))
+          toRemove.add(extractor);
+      }
+      extractors.removeAll(toRemove);
+    }
+
     final Path baseFolder = Paths.get(folderPath);
     final List<Path> fileList = PathWalker.INSTANCE.getPath(baseFolder,
         inputType == InputType.Raw ? null : ".*\\.json");

@@ -91,6 +91,11 @@
         </dependency>
         <dependency>
             <groupId>ir.ac.iust.dml.kg.raw</groupId>
+            <artifactId>distant-supervision-re</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ir.ac.iust.dml.kg.raw</groupId>
             <artifactId>raw-text-access</artifactId>
             <version>0.3.0</version>
         </dependency>
