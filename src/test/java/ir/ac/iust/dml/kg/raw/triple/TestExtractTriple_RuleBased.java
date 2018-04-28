@@ -1,6 +1,7 @@
 package ir.ac.iust.dml.kg.raw.triple;
 
 import ir.ac.iust.dml.kg.raw.rulebased.RuleBasedTripleExtractor;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,10 +9,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(SpringRunner.class)
@@ -23,20 +23,12 @@ public class TestExtractTriple_RuleBased {
     @Test
     public void testExtractTripleRuleBased() throws IOException {
 
-        String inputPath = "inputText.txt";
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("sample_sentences.txt");
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(inputStream, writer, Charset.forName("UTF-8"));
+        String input = writer.toString();
 
-        if (Files.notExists(Paths.get(inputPath)))
-            Files.copy(TestExtractTriple_RuleBased.class.getResourceAsStream("/inputText.txt"), Paths.get(inputPath));
-
-        List<String> lines = Files.readAllLines(Paths.get(inputPath), Charset.forName("UTF-8"));
-        for (String line : lines) {
-            System.out.println("سلام: " + line);
-        }
-        List<RawTriple> tripleList = new ArrayList<RawTriple>();
-
-        for (String line : lines) {
-            tripleList.addAll(extractor.extract(null, null, line));
-        }
+        List<RawTriple> tripleList = extractor.extract(null, null, input);
 
         System.out.println(tripleList.toString());
     }

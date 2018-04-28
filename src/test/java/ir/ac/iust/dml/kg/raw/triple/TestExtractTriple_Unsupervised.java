@@ -7,30 +7,27 @@
 package ir.ac.iust.dml.kg.raw.triple;
 
 import ir.ac.iust.dml.kg.raw.services.unsupervised.UnsupervisedTripleExtractor;
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TestExtractTriple_Unsupervised {
   private UnsupervisedTripleExtractor extractor = new UnsupervisedTripleExtractor();
 
   @Test
-  public void testExtractTripleRuleBased() throws IOException {
+  public void testExtractTripleUnsupervised() throws IOException {
 
-    String inputPath = "inputText.txt";
+    InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("sample_sentences.txt");
+    StringWriter writer = new StringWriter();
+    IOUtils.copy(inputStream, writer, Charset.forName("UTF-8"));
+    String input = writer.toString();
 
-    if (Files.notExists(Paths.get(inputPath)))
-      Files.copy(TestExtractTriple_RuleBased.class.getResourceAsStream("/inputText.txt"), Paths.get(inputPath));
-
-    List<String> lines = Files.readAllLines(Paths.get(inputPath), Charset.forName("UTF-8"));
-    String text = lines.stream().map(Object::toString).collect(Collectors.joining("\n"));
-
-    List<RawTriple> tripleList = extractor.extract(null, null, text);
+    List<RawTriple> tripleList = extractor.extract(null, null, input);
 
     for (RawTriple triple : tripleList) System.out.println(triple.toString());
   }
