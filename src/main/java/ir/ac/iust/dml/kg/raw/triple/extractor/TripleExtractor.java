@@ -7,6 +7,7 @@
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
 import ir.ac.iust.dml.kg.raw.Normalizer;
+import ir.ac.iust.dml.kg.raw.SentenceBranch;
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
 import ir.ac.iust.dml.kg.raw.extractor.EnhancedEntityExtractor;
 import ir.ac.iust.dml.kg.raw.extractor.ResolvedEntityToken;
@@ -95,7 +96,8 @@ public class TripleExtractor {
         try {
           final List<RawTriple> triples;
           if (input instanceof String)
-            triples = rawTripleExtractor.extract(null, null, Normalizer.removeBrackets((String) input));
+            triples = rawTripleExtractor.extract(null, null,
+                SentenceBranch.summarize(Normalizer.removeBrackets((String) input)));
           else
             //noinspection unchecked
             triples = rawTripleExtractor.extract(null, null, (List<List<ResolvedEntityToken>>) input);
