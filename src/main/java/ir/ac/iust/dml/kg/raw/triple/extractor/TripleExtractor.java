@@ -6,11 +6,13 @@
 
 package ir.ac.iust.dml.kg.raw.triple.extractor;
 
+import ir.ac.iust.dml.kg.raw.DependencyParser;
 import ir.ac.iust.dml.kg.raw.Normalizer;
 import ir.ac.iust.dml.kg.raw.SentenceBranch;
 import ir.ac.iust.dml.kg.raw.SentenceTokenizer;
 import ir.ac.iust.dml.kg.raw.extractor.EnhancedEntityExtractor;
 import ir.ac.iust.dml.kg.raw.extractor.ResolvedEntityToken;
+import ir.ac.iust.dml.kg.raw.services.tree.ParsingLogic;
 import ir.ac.iust.dml.kg.raw.triple.RawTriple;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
 import ir.ac.iust.dml.kg.raw.utils.PathWalker;
@@ -98,9 +100,13 @@ public class TripleExtractor {
           if (input instanceof String)
             triples = rawTripleExtractor.extract(null, null,
                 SentenceBranch.summarize(Normalizer.removeBrackets((String) input)));
-          else
+          else {
             //noinspection unchecked
-            triples = rawTripleExtractor.extract(null, null, (List<List<ResolvedEntityToken>>) input);
+            final List<List<ResolvedEntityToken>> sentences = (List<List<ResolvedEntityToken>>) input;
+            final List<List<ResolvedEntityToken>> copy = ResolvedEntityToken.copySentences(sentences);
+            if (rawTripleExtractor instanceof ParsingLogic) DependencyParser.addDependencyParseSentences(copy, false);
+            triples = rawTripleExtractor.extract(null, null, copy);
+          }
           if (!triples.isEmpty()) {
             final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
             final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
