@@ -26,10 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class TripleExtractor {
@@ -65,7 +62,11 @@ public class TripleExtractor {
 
     int numberOfSentences = 0;
     final Map<Class, Integer> numberOfExtractedTriples = new HashMap<>();
-    final Long extractionStart = System.currentTimeMillis();
+    final Map<Class, Integer> numberOfExtractedTriplesWithAutoIri = new HashMap<>();
+    final Map<Class, Integer> numberOfExtractedTriplesAbove70 = new HashMap<>();
+    final Map<Class, Integer> numberOfExtractedTriplesAbove80 = new HashMap<>();
+    final Map<Class, Integer> numberOfExtractedTriplesAbove90 = new HashMap<>();
+    final long extractionStart = System.currentTimeMillis();
     int lastLogNumberOfSentences = 0;
     for (Path file : fileList) {
       List<RawTriple> allFileTriples = new ArrayList<>();
@@ -90,7 +91,9 @@ public class TripleExtractor {
       }
 
       if (numberOfSentences - lastLogNumberOfSentences > 100) {
-        showStats(numberOfSentences, numberOfExtractedTriples, extractionStart);
+        showStats(numberOfSentences, numberOfExtractedTriples, numberOfExtractedTriplesWithAutoIri,
+                numberOfExtractedTriplesAbove90, numberOfExtractedTriplesAbove80, numberOfExtractedTriplesAbove70,
+                extractionStart);
         lastLogNumberOfSentences = numberOfSentences;
       }
 
@@ -108,27 +111,59 @@ public class TripleExtractor {
             triples = rawTripleExtractor.extract(null, null, copy);
           }
           if (!triples.isEmpty()) {
-            final Integer oldValue = numberOfExtractedTriples.get(rawTripleExtractor.getClass());
-            final int newValue = (oldValue == null ? 0 : oldValue) + triples.size();
-            numberOfExtractedTriples.put(rawTripleExtractor.getClass(), newValue);
+            final Class c = rawTripleExtractor.getClass();
+            increaseStats(numberOfExtractedTriples, c, triples.size());
+
+            for(RawTriple triple: triples) {
+              if(triple.getAccuracy() > 0.7) increaseStats(numberOfExtractedTriplesAbove70, c, 1);
+              if(triple.getAccuracy() > 0.8) increaseStats(numberOfExtractedTriplesAbove80, c, 1);
+              if(triple.getAccuracy() > 0.9) increaseStats(numberOfExtractedTriplesAbove90, c, 1);
+              if(triple.getSubject().contains("/auto/") || triple.getObject().contains("/auto/"))
+                increaseStats(numberOfExtractedTriplesWithAutoIri, c, 1);
+            }
+
             allFileTriples.addAll(triples);
           }
         } catch (Exception e) {
           LOGGER.trace("error in extracting triples from " + file.toAbsolutePath(), e);
         }
       }
-      if (!allFileTriples.isEmpty())
+      if (!allFileTriples.isEmpty()) {
+        Collections.sort(allFileTriples);
+        Collections.reverse(allFileTriples);
         ExtractorUtils.writeTriples(outputFolder.resolve(file.getFileName() + ".json"), allFileTriples);
+      }
     }
     ExtractorUtils.markExtraction(outputFolder, extractionStart);
-    showStats(numberOfSentences, numberOfExtractedTriples, extractionStart);
+    showStats(numberOfSentences, numberOfExtractedTriples, numberOfExtractedTriplesWithAutoIri,
+            numberOfExtractedTriplesAbove90, numberOfExtractedTriplesAbove80, numberOfExtractedTriplesAbove70,
+            extractionStart);
     System.exit(0);
   }
 
-  private void showStats(int numberOfSentences, Map<Class, Integer> numberOfExtractedTriples, long startTime) {
+  private void increaseStats(Map<Class, Integer> numberOfExtractedTriples, Class klass, int value) {
+    final Integer oldValue = numberOfExtractedTriples.get(klass);
+    final int newValue = (oldValue == null ? 0 : oldValue) + value;
+    numberOfExtractedTriples.put(klass, newValue);
+  }
+
+  private void showStats(int numberOfSentences,
+                         Map<Class, Integer> numberOfExtractedTriples,
+                         Map<Class, Integer> numberOfExtractedTriplesWithAutoIri,
+                         Map<Class, Integer> numberOfExtractedTriplesAbove90,
+                         Map<Class, Integer> numberOfExtractedTriplesAbove80,
+                         Map<Class, Integer> numberOfExtractedTriplesAbove70,
+                         long startTime) {
     LOGGER.warn(String.format("%6d sentences has been processed in %d mili-seconds",
         numberOfSentences, (System.currentTimeMillis() - startTime)));
     numberOfExtractedTriples.forEach((key, value) ->
-        LOGGER.warn(String.format("Number of extracted triples from %s is %d.", key.getSimpleName(), value)));
+        LOGGER.warn(String.format(
+                "Number of extracted triples from %s is %d (above 90: %d, above 80: %d, above 70: %d)" +
+                        " with %d auto IRIs.",
+                key.getSimpleName(), value,
+                numberOfExtractedTriplesAbove90.get(key),
+                numberOfExtractedTriplesAbove80.get(key),
+                numberOfExtractedTriplesAbove70.get(key),
+                numberOfExtractedTriplesWithAutoIri.get(key))));
   }
 }

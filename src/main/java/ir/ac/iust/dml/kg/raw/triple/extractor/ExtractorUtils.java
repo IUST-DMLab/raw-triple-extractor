@@ -36,10 +36,10 @@ class ExtractorUtils {
   @SuppressWarnings("UnusedReturnValue")
   static boolean markExtraction(Path outputFolder, long extractionStart) {
     try {
-      Long extractionEnd = System.currentTimeMillis();
+      long extractionEnd = System.currentTimeMillis();
       Info info = new Info();
       info.setExtractionStart(String.valueOf(extractionStart));
-      info.setExtractionEnd(extractionEnd.toString());
+      info.setExtractionEnd(Long.toString(extractionEnd));
       info.setModule(Module.raw_dependency_pattern.toString());
       FileUtils.write(outputFolder.resolve("info.json").toFile(), gson.toJson(info), "UTF-8", false);
       return true;
