@@ -56,7 +56,7 @@ public class TripleExtractor {
 
     final Path baseFolder = Paths.get(folderPath);
     final List<Path> fileList = PathWalker.INSTANCE.getPath(baseFolder,
-        inputType == InputType.Raw ? null : ".*\\.json");
+            inputType == InputType.Raw ? null : ".*\\.json");
     final Path outputFolder = baseFolder.resolve("output");
     if (!Files.exists(outputFolder)) Files.createDirectories(outputFolder);
 
@@ -69,7 +69,9 @@ public class TripleExtractor {
     final long extractionStart = System.currentTimeMillis();
     int lastLogNumberOfSentences = 0;
     for (Path file : fileList) {
+      LOGGER.info("opening file " + file.toAbsolutePath().toString());
       List<RawTriple> allFileTriples = new ArrayList<>();
+      List<RawTriple> allFileTriplesAbove80 = new ArrayList<>();
       Object input;
       try {
         if (inputType == InputType.Raw) {
@@ -102,7 +104,7 @@ public class TripleExtractor {
           final List<RawTriple> triples;
           if (input instanceof String)
             triples = rawTripleExtractor.extract(null, null,
-                SentenceBranch.summarize(Normalizer.removeBrackets((String) input)));
+                    SentenceBranch.summarize(Normalizer.removeBrackets((String) input)));
           else {
             //noinspection unchecked
             final List<List<ResolvedEntityToken>> sentences = (List<List<ResolvedEntityToken>>) input;
@@ -114,11 +116,14 @@ public class TripleExtractor {
             final Class c = rawTripleExtractor.getClass();
             increaseStats(numberOfExtractedTriples, c, triples.size());
 
-            for(RawTriple triple: triples) {
-              if(triple.getAccuracy() > 0.7) increaseStats(numberOfExtractedTriplesAbove70, c, 1);
-              if(triple.getAccuracy() > 0.8) increaseStats(numberOfExtractedTriplesAbove80, c, 1);
-              if(triple.getAccuracy() > 0.9) increaseStats(numberOfExtractedTriplesAbove90, c, 1);
-              if(triple.getSubject().contains("/auto/") || triple.getObject().contains("/auto/"))
+            for (RawTriple triple : triples) {
+              if (triple.getAccuracy() > 0.7) increaseStats(numberOfExtractedTriplesAbove70, c, 1);
+              if (triple.getAccuracy() > 0.8) {
+                increaseStats(numberOfExtractedTriplesAbove80, c, 1);
+                allFileTriplesAbove80.add(triple);
+              }
+              if (triple.getAccuracy() > 0.9) increaseStats(numberOfExtractedTriplesAbove90, c, 1);
+              if (triple.getSubject().contains("/auto/") || triple.getObject().contains("/auto/"))
                 increaseStats(numberOfExtractedTriplesWithAutoIri, c, 1);
             }
 
@@ -128,11 +133,18 @@ public class TripleExtractor {
           LOGGER.trace("error in extracting triples from " + file.toAbsolutePath(), e);
         }
       }
-      if (!allFileTriples.isEmpty()) {
-        Collections.sort(allFileTriples);
-        Collections.reverse(allFileTriples);
+      Collections.sort(allFileTriples);
+      Collections.reverse(allFileTriples);
+      if (allFileTriples.isEmpty())
+        LOGGER.info("no triples extracted from file " + file.toAbsolutePath().toString());
+      else
+        LOGGER.info("extracted " + allFileTriples.size() + " triples and " + allFileTriplesAbove80.size() +
+                " confident triples from file " + file.toAbsolutePath().toString());
+      if (!allFileTriples.isEmpty())
         ExtractorUtils.writeTriples(outputFolder.resolve(file.getFileName() + ".json"), allFileTriples);
-      }
+      if (!allFileTriplesAbove80.isEmpty())
+        ExtractorUtils.writeTriples(outputFolder.resolve("above_80_" + file.getFileName() + ".json"),
+                allFileTriplesAbove80);
     }
     ExtractorUtils.markExtraction(outputFolder, extractionStart);
     showStats(numberOfSentences, numberOfExtractedTriples, numberOfExtractedTriplesWithAutoIri,
@@ -155,15 +167,15 @@ public class TripleExtractor {
                          Map<Class, Integer> numberOfExtractedTriplesAbove70,
                          long startTime) {
     LOGGER.warn(String.format("%6d sentences has been processed in %d mili-seconds",
-        numberOfSentences, (System.currentTimeMillis() - startTime)));
+            numberOfSentences, (System.currentTimeMillis() - startTime)));
     numberOfExtractedTriples.forEach((key, value) ->
-        LOGGER.warn(String.format(
-                "Number of extracted triples from %s is %d (above 90: %d, above 80: %d, above 70: %d)" +
-                        " with %d auto IRIs.",
-                key.getSimpleName(), value,
-                numberOfExtractedTriplesAbove90.get(key),
-                numberOfExtractedTriplesAbove80.get(key),
-                numberOfExtractedTriplesAbove70.get(key),
-                numberOfExtractedTriplesWithAutoIri.get(key))));
+            LOGGER.warn(String.format(
+                    "Number of extracted triples from %s is %d (above 90: %d, above 80: %d, above 70: %d)" +
+                            " with %d auto IRIs.",
+                    key.getSimpleName(), value,
+                    numberOfExtractedTriplesAbove90.get(key),
+                    numberOfExtractedTriplesAbove80.get(key),
+                    numberOfExtractedTriplesAbove70.get(key),
+                    numberOfExtractedTriplesWithAutoIri.get(key))));
   }
 }
