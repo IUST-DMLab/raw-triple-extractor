@@ -16,6 +16,7 @@ import ir.ac.iust.dml.kg.raw.services.tree.ParsingLogic;
 import ir.ac.iust.dml.kg.raw.triple.RawTriple;
 import ir.ac.iust.dml.kg.raw.triple.RawTripleExtractor;
 import ir.ac.iust.dml.kg.raw.utils.PathWalker;
+import ir.ac.iust.dml.kg.raw.utils.URIs;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,6 +114,13 @@ public class TripleExtractor {
             triples = rawTripleExtractor.extract(null, null, copy);
           }
           if (!triples.isEmpty()) {
+
+            for(RawTriple t : triples) {
+              if(t.getSubject().contains(":")) t.setSubject(URIs.INSTANCE.prefixedToUri(t.getSubject()));
+              if(t.getPredicate().contains(":")) t.setPredicate(URIs.INSTANCE.prefixedToUri(t.getPredicate()));
+              if(t.getObject().contains(":")) t.setObject(URIs.INSTANCE.prefixedToUri(t.getObject()));
+            }
+
             final Class c = rawTripleExtractor.getClass();
             increaseStats(numberOfExtractedTriples, c, triples.size());
 
@@ -120,7 +128,9 @@ public class TripleExtractor {
               if (triple.getAccuracy() > 0.7) increaseStats(numberOfExtractedTriplesAbove70, c, 1);
               if (triple.getAccuracy() > 0.8) {
                 increaseStats(numberOfExtractedTriplesAbove80, c, 1);
-                allFileTriplesAbove80.add(triple);
+                // Filter distant supervision results < 0.9
+                if (!(triple.getModule().equals("DistantSupervision") && triple.getAccuracy() < 0.9))
+                  allFileTriplesAbove80.add(triple);
               }
               if (triple.getAccuracy() > 0.9) increaseStats(numberOfExtractedTriplesAbove90, c, 1);
               if (triple.getSubject().contains("/auto/") || triple.getObject().contains("/auto/"))
